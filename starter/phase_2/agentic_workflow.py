@@ -184,48 +184,52 @@ routing_agent = RoutingAgent(
 #   4. Return the final validated response.
 
 def product_manager_support_function(query):
-    response = product_manager_knowledge_agent.respond(query)
-    result = product_manager_evaluation_agent.evaluate(response)
+    result = product_manager_evaluation_agent.evaluate(query)
     return result["final_response"]
 
 def program_manager_support_function(query):
-    response = program_manager_knowledge_agent.respond(query)
-    result = program_manager_evaluation_agent.evaluate(response)
+    result = program_manager_evaluation_agent.evaluate(query)
     return result["final_response"]
 
 def development_engineer_support_function(query):
-    response = development_engineer_knowledge_agent.respond(query)
-    result = development_engineer_evaluation_agent.evaluate(response)
+    result = development_engineer_evaluation_agent.evaluate(query)
     return result["final_response"]
 
-# Run the workflow
 
-print("\n*** Workflow execution started ***\n")
-# Workflow Prompt
-# ****
-workflow_prompt = "What would the development tasks for this product be?"
-# ****
-print(f"Task to complete in this workflow, workflow prompt = {workflow_prompt}")
+def main():
+    print("\n*** Workflow execution started ***\n")
+    # Workflow Prompt
+    # ****
+    workflow_prompt = (
+        "Create a complete project development plan for the Email Router product, "
+        "including user stories, product features, and detailed engineering tasks."
+    )
+    # ****
+    print(f"Task to complete in this workflow, workflow prompt = {workflow_prompt}")
 
-print("\nDefining workflow steps from the workflow prompt")
-# TODO: 12 - Implement the workflow.
-#   1. Use the 'action_planning_agent' to extract steps from the 'workflow_prompt'.
-#   2. Initialize an empty list to store 'completed_steps'.
-#   3. Loop through the extracted workflow steps:
-#      a. For each step, use the 'routing_agent' to route the step to the appropriate support function.
-#      b. Append the result to 'completed_steps'.
-#      c. Print information about the step being executed and its result.
-#   4. After the loop, print the final output of the workflow (the last completed step).
+    print("\nDefining workflow steps from the workflow prompt")
+    workflow_steps = action_planning_agent.extract_steps_from_prompt(workflow_prompt)
+
+    print("\nWorkflow steps:")
+    for idx, step in enumerate(workflow_steps, start=1):
+        print(f"{idx}. {step}")
+
+    completed_steps = []
+
+    for step in workflow_steps:
+        print(f"\n>>> Executing step: {step}")
+        result = routing_agent.route(step)
+        completed_steps.append({"step": step, "result": result})
+        print(f"Step result:\n{result}")
+
+    if completed_steps:
+        print("\n*** Complete Email Router Project Plan ***")
+        for item in completed_steps:
+            print(f"\n## Step: {item['step']}")
+            print(item["result"])
+    else:
+        print("No workflow steps were completed.")
 
 
-workflow_steps = action_planning_agent.extract_steps_from_prompt(workflow_prompt)
-completed_steps = []
-
-for step in workflow_steps:
-    print(f"\n>>> Executing step: {step}")
-    result = routing_agent.route(step)
-    completed_steps.append(result)
-    print(f"Step result:\n{result}")
-
-print("\n*** Workflow Final Output ***")
-print(completed_steps[-1])
+if __name__ == "__main__":
+    main()
