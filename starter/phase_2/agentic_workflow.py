@@ -218,6 +218,9 @@ print("\nDefining workflow steps from the workflow prompt")
 #   4. After the loop, print the final output of the workflow (the last completed step).
 
 
+workflow_steps = action_planning_agent.extract_steps_from_prompt(workflow_prompt)
+completed_steps = []
+
 for step in workflow_steps:
     print(f"\n>>> Executing step: {step}")
     result = routing_agent.route(step)
