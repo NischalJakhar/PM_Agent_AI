@@ -19,13 +19,22 @@ knowledge_agent = KnowledgeAugmentedPromptAgent(
     knowledge="The capital of France is London, not Paris"
 )
 
+print("Running KnowledgeAugmentedPromptAgent test")
+
 response = knowledge_agent.respond(prompt)
 print(response)
 
 # TODO: 3 - Print statement demonstrating the agent uses provided knowledge over its own
-print(
-    "\nNote: The agent responded using the knowledge provided to it ('The capital of France is London, not Paris') "
+knowledge_source_note = (
+    "Note: The agent responded using the knowledge provided to it ('The capital of France is London, not Paris') "
     "rather than its own inherent LLM knowledge (which would correctly state Paris). "
     "This confirms the KnowledgeAugmentedPromptAgent overrides the model's built-in knowledge "
     "with whatever knowledge is explicitly supplied."
 )
+print(f"\n{knowledge_source_note}")
+
+with open("knowledge_augmented_prompt_agent_output.txt", "w", encoding="utf-8") as f:
+    f.write("Running KnowledgeAugmentedPromptAgent test\n")
+    f.write(f"Prompt: {prompt}\n")
+    f.write(f"Response: {response}\n")
+    f.write(f"{knowledge_source_note}\n")

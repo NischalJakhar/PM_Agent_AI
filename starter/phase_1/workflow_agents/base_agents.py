@@ -303,10 +303,12 @@ class EvaluationAgent:
 
                 print(" Step 5: Send feedback to worker agent for refinement")
                 prompt_to_evaluate = (
-                    f"The original prompt was: {initial_prompt}\n"
-                    f"The response to that prompt was: {response_from_worker}\n"
-                    f"It has been evaluated as incorrect.\n"
-                    f"Make only these corrections, do not alter content validity: {instructions}"
+                    f"Original task: {initial_prompt}\n\n"
+                    f"Your previous answer to this task was:\n{response_from_worker}\n\n"
+                    f"That answer was evaluated as incorrect for this reason: {evaluation}\n\n"
+                    f"Apply this fix: {instructions}\n\n"
+                    f"Now provide the complete, corrected answer to the original task above. "
+                    f"Output only the corrected deliverable itself, not a description of the changes."
                 )
         return {
             # TODO: 7 - Return a dictionary containing the final response, evaluation, and number of iterations
@@ -401,6 +403,18 @@ class ActionPlanningAgent:
         response_text = response.choices[0].message.content  # TODO: 4 - Extract the response text from the OpenAI API response
 
         # TODO: 5 - Clean and format the extracted steps by removing empty lines and unwanted text
-        steps = [step for step in response_text.split("\n") if step.strip()]
+        # Keep only top-level steps (e.g. "1. ..." or "- ..."); drop indented
+        # sub-bullets and any trailing prose that isn't itself a step.
+        steps = []
+        for line in response_text.split("\n"):
+            if not line.strip():
+                continue
+            if line[:1].isspace():
+                continue
+            if re.match(r'^(\d+[\.\)]|[-*])\s+\S', line.strip()):
+                steps.append(line.strip())
+
+        if not steps:
+            steps = [line.strip() for line in response_text.split("\n") if line.strip()]
 
         return steps

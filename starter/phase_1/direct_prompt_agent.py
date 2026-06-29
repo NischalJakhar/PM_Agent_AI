@@ -18,13 +18,22 @@ direct_agent = DirectPromptAgent(openai_api_key=openai_api_key)
 # TODO: 4 - Use direct_agent to send the prompt defined above and store the response
 direct_agent_response = direct_agent.respond(prompt)
 
+print("Running DirectPromptAgent test")
+
 # Print the response from the agent
 print(direct_agent_response)
 
 # TODO: 5 - Print an explanatory message describing the knowledge source used by the agent
-print(
+knowledge_source_note = (
     "Knowledge Source: The agent used the general knowledge built into the "
     "GPT-3.5-turbo model during its training. No external documents, persona, "
     "or knowledge base were provided — the response is based purely on what "
     "the LLM already knows."
 )
+print(knowledge_source_note)
+
+with open("direct_prompt_agent_output.txt", "w", encoding="utf-8") as f:
+    f.write("Running DirectPromptAgent test\n")
+    f.write(f"Prompt: {prompt}\n")
+    f.write(f"Response: {direct_agent_response}\n")
+    f.write(f"{knowledge_source_note}\n")

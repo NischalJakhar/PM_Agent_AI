@@ -38,7 +38,8 @@ action_planning_agent = ActionPlanningAgent(
 persona_product_manager = "You are a Product Manager, you are responsible for defining the user stories for a product."
 knowledge_product_manager = (
     "Stories are defined by writing sentences with a persona, an action, and a desired outcome. "
-    "The sentences always start with: As a "
+    "Each story must use exactly this format on its own line: "
+    "As a [type of user], I want [an action or feature] so that [benefit/value]. "
     "Write several stories for the product spec below, where the personas are the different users of the product. "
     # TODO: 5 - Complete this knowledge string by appending the product_spec loaded in TODO 3
     + product_spec
@@ -69,7 +70,16 @@ product_manager_evaluation_agent = EvaluationAgent(
 
 # Program Manager - Knowledge Augmented Prompt Agent
 persona_program_manager = "You are a Program Manager, you are responsible for defining the features for a product."
-knowledge_program_manager = "Features of a product are defined by organizing similar user stories into cohesive groups."
+knowledge_program_manager = (
+    "Features of a product are defined by organizing similar user stories into cohesive groups. "
+    "Format every feature exactly with these four labeled lines, in this order: "
+    "Feature Name: <a clear, concise title>\n"
+    "Description: <a brief explanation of what the feature does and its purpose>\n"
+    "Key Functionality: <the specific capabilities or actions the feature provides>\n"
+    "User Benefit: <how this feature creates value for the user>\n"
+    "Base your features only on the product spec and user stories below, do not invent unrelated features.\n"
+    + product_spec
+)
 # Instantiate a program_manager_knowledge_agent using 'persona_program_manager' and 'knowledge_program_manager'
 # (This is a necessary step before TODO 8. Students should add the instantiation code here.)
 program_manager_knowledge_agent = KnowledgeAugmentedPromptAgent(
@@ -91,11 +101,13 @@ persona_program_manager_eval = "You are an evaluation agent that checks the answ
 # For the 'agent_to_evaluate' parameter, refer to the provided solution code's pattern.
 
 evaluation_criteria_program_manager = (
-    "The answer should be product features that follow the following structure: "
+    "The answer should be product features that follow the following structure, using these "
+    "exact field labels verbatim (e.g. the literal text 'Feature Name:') for every feature: "
     "Feature Name: A clear, concise title that identifies the capability\n"
     "Description: A brief explanation of what the feature does and its purpose\n"
     "Key Functionality: The specific capabilities or actions the feature provides\n"
-    "User Benefit: How this feature creates value for the user"
+    "User Benefit: How this feature creates value for the user\n"
+    "Reject any answer that describes features without using these literal labels."
 )
 program_manager_evaluation_agent = EvaluationAgent(
     openai_api_key=openai_api_key,
@@ -108,7 +120,19 @@ program_manager_evaluation_agent = EvaluationAgent(
 
 # Development Engineer - Knowledge Augmented Prompt Agent
 persona_dev_engineer = "You are a Development Engineer, you are responsible for defining the development tasks for a product."
-knowledge_dev_engineer = "Development tasks are defined by identifying what needs to be built to implement each user story."
+knowledge_dev_engineer = (
+    "Development tasks are defined by identifying what needs to be built to implement each user story. "
+    "Format every task exactly with these seven labeled lines, in this order: "
+    "Task ID: <a unique identifier for tracking purposes>\n"
+    "Task Title: <brief description of the specific development work>\n"
+    "Related User Story: <reference to the parent user story>\n"
+    "Description: <detailed explanation of the technical work required>\n"
+    "Acceptance Criteria: <specific requirements that must be met for completion>\n"
+    "Estimated Effort: <time or complexity estimation>\n"
+    "Dependencies: <any tasks that must be completed first>\n"
+    "Base your tasks only on the product spec and user stories/features below, do not invent unrelated tasks.\n"
+    + product_spec
+)
 # Instantiate a development_engineer_knowledge_agent using 'persona_dev_engineer' and 'knowledge_dev_engineer'
 # (This is a necessary step before TODO 9. Students should add the instantiation code here.)
 
@@ -133,14 +157,16 @@ persona_dev_engineer_eval = "You are an evaluation agent that checks the answers
 # For the 'agent_to_evaluate' parameter, refer to the provided solution code's pattern.
 
 evaluation_criteria_dev_engineer = (
-    "The answer should be tasks following this exact structure: "
+    "The answer should be tasks following this exact structure, using these exact field "
+    "labels verbatim (e.g. the literal text 'Task ID:') for every task: "
     "Task ID: A unique identifier for tracking purposes\n"
     "Task Title: Brief description of the specific development work\n"
     "Related User Story: Reference to the parent user story\n"
     "Description: Detailed explanation of the technical work required\n"
     "Acceptance Criteria: Specific requirements that must be met for completion\n"
     "Estimated Effort: Time or complexity estimation\n"
-    "Dependencies: Any tasks that must be completed first"
+    "Dependencies: Any tasks that must be completed first\n"
+    "Reject any answer that describes tasks without using these literal labels."
 )
 development_engineer_evaluation_agent = EvaluationAgent(
     openai_api_key=openai_api_key,
@@ -196,6 +222,20 @@ def development_engineer_support_function(query):
     return result["final_response"]
 
 
+def keyword_route(step):
+    """Deterministic routing for unambiguous steps; embedding-based RoutingAgent
+    is used as a fallback for steps that don't match a clear keyword, since
+    similarity scores between roles can be too close to be reliable on their own."""
+    s = step.lower()
+    if "user stor" in s or "persona" in s:
+        return product_manager_support_function
+    if "feature" in s:
+        return program_manager_support_function
+    if "engineering task" in s or "development task" in s:
+        return development_engineer_support_function
+    return None
+
+
 def main():
     print("\n*** Workflow execution started ***\n")
     # Workflow Prompt
@@ -216,17 +256,42 @@ def main():
 
     completed_steps = []
 
-    for step in workflow_steps:
+    for idx, step in enumerate(workflow_steps, start=1):
         print(f"\n>>> Executing step: {step}")
-        result = routing_agent.route(step)
+
+        context_so_far = "\n\n".join(
+            f"{item['step']}\n{item['result']}" for item in completed_steps
+        )
+        query = f"{context_so_far}\n\nNow complete this step: {step}" if context_so_far else step
+
+        handler = keyword_route(step)
+        if handler is not None:
+            # Confidently identified role: pass the context-rich query so
+            # this step's output is grounded in prior steps' real results.
+            result = handler(query)
+        else:
+            # Ambiguous step: fall back to the reusable embedding-based
+            # RoutingAgent, routed on the short step text alone (routing
+            # on a long context-laden query would dilute the similarity
+            # signal RoutingAgent relies on).
+            result = routing_agent.route(step)
+
         completed_steps.append({"step": step, "result": result})
         print(f"Step result:\n{result}")
 
+        with open(f"step_{idx}_output.txt", "w", encoding="utf-8") as f:
+            f.write(f"Step: {step}\n\n")
+            f.write(f"Result:\n{result}\n")
+
     if completed_steps:
         print("\n*** Complete Email Router Project Plan ***")
-        for item in completed_steps:
-            print(f"\n## Step: {item['step']}")
-            print(item["result"])
+        with open("agentic_workflow_output.txt", "w", encoding="utf-8") as f:
+            f.write("*** Complete Email Router Project Plan ***\n")
+            for item in completed_steps:
+                section = f"\n## Step: {item['step']}\n{item['result']}\n"
+                print(f"\n## Step: {item['step']}")
+                print(item["result"])
+                f.write(section)
     else:
         print("No workflow steps were completed.")
 
