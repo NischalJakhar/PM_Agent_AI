@@ -1,0 +1,4 @@
+Step: 1. Identify User Stories:
+
+Result:
+As a Customer Support Representative, I want the Email Router to automatically categorize incoming emails so that I can focus on handling complex customer inquiries efficiently.
