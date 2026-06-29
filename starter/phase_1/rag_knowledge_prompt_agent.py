@@ -45,7 +45,14 @@ Her life and work were testaments to the power of connecting across disciplines,
 chunks = RAG_knowledge_prompt_agent.chunk_text(knowledge_text)
 embbedings = RAG_knowledge_prompt_agent.calculate_embeddings()
 
+print("Running RAGKnowledgePromptAgent test")
+
 prompt = "What is the podcast that Clara hosts about?"
-print(prompt)
+print(f"Prompt: {prompt}")
 prompt_answer = RAG_knowledge_prompt_agent.find_prompt_in_knowledge(prompt)
-print(prompt_answer)
+print(f"Response: {prompt_answer}")
+
+with open("rag_knowledge_prompt_agent_output.txt", "w", encoding="utf-8") as f:
+    f.write("Running RAGKnowledgePromptAgent test\n")
+    f.write(f"Prompt: {prompt}\n")
+    f.write(f"Response: {prompt_answer}\n")
