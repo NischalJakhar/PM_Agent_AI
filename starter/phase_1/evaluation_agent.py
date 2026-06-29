@@ -29,6 +29,8 @@ evaluation_agent = EvaluationAgent(  # TODO: 3 - Instantiate the EvaluationAgent
     max_interactions=10
 )
 
+print("Running EvaluationAgent test")
+
 # TODO: 4 - Evaluate the prompt and print the response from the EvaluationAgent
 result = evaluation_agent.evaluate(prompt)
 
@@ -36,3 +38,10 @@ print("\n*** Evaluation Complete ***")
 print(f"Final Response:  {result['final_response']}")
 print(f"Evaluation:      {result['evaluation']}")
 print(f"Iterations:      {result['iterations']}")
+
+with open("evaluation_agent_output.txt", "w", encoding="utf-8") as f:
+    f.write("Running EvaluationAgent test\n")
+    f.write(f"Prompt: {prompt}\n")
+    f.write(f"Final Response: {result['final_response']}\n")
+    f.write(f"Evaluation: {result['evaluation']}\n")
+    f.write(f"Iterations: {result['iterations']}\n")

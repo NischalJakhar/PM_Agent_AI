@@ -21,6 +21,8 @@ augmented_agent = AugmentedPromptAgent(
 # TODO: 3 - Send the 'prompt' to the agent and store the response in a variable named 'augmented_agent_response'
 augmented_agent_response = augmented_agent.respond(prompt)
 
+print("Running AugmentedPromptAgent test")
+
 # Print the agent's response
 print(augmented_agent_response)
 
@@ -36,3 +38,9 @@ print(augmented_agent_response)
 #   a professorial tone and always begins its response with "Dear students," — making
 #   the output more formal and instructional in nature. The persona does not change
 #   the factual content, only how it is communicated.
+
+with open("augmented_prompt_agent_output.txt", "w", encoding="utf-8") as f:
+    f.write("Running AugmentedPromptAgent test\n")
+    f.write(f"Persona: {persona}\n")
+    f.write(f"Prompt: {prompt}\n")
+    f.write(f"Response: {augmented_agent_response}\n")

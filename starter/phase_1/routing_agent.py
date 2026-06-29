@@ -56,6 +56,8 @@ agents = [
 
 routing_agent.agents = agents
 
+print("Running RoutingAgent test")
+
 # TODO: 8 - Print the RoutingAgent responses to the following prompts
 prompts = [
     "Tell me about the history of Rome, Texas",
@@ -63,6 +65,11 @@ prompts = [
     "One story takes 2 days, and there are 20 stories"
 ]
 
-for prompt in prompts:
-    print(f"\nPrompt: {prompt}")
-    print(f"Response: {routing_agent.route(prompt)}")
+with open("routing_agent_output.txt", "w", encoding="utf-8") as f:
+    f.write("Running RoutingAgent test\n")
+    for prompt in prompts:
+        response = routing_agent.route(prompt)
+        print(f"\nPrompt: {prompt}")
+        print(f"Response: {response}")
+        f.write(f"\nPrompt: {prompt}\n")
+        f.write(f"Response: {response}\n")

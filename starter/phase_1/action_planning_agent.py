@@ -41,6 +41,8 @@ action_planning_agent = ActionPlanningAgent(
     knowledge=knowledge
 )
 
+print("Running ActionPlanningAgent test")
+
 # TODO: 4 - Print the agent's response to the following prompt
 prompt = "One morning I wanted to have scrambled eggs"
 steps = action_planning_agent.extract_steps_from_prompt(prompt)
@@ -49,3 +51,10 @@ print(f"Prompt: {prompt}")
 print("\nExtracted Action Steps:")
 for step in steps:
     print(step)
+
+with open("action_planning_agent_output.txt", "w", encoding="utf-8") as f:
+    f.write("Running ActionPlanningAgent test\n")
+    f.write(f"Prompt: {prompt}\n")
+    f.write("Extracted Action Steps:\n")
+    for step in steps:
+        f.write(f"{step}\n")

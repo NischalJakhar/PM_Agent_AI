@@ -69,7 +69,11 @@ product_manager_evaluation_agent = EvaluationAgent(
 
 # Program Manager - Knowledge Augmented Prompt Agent
 persona_program_manager = "You are a Program Manager, you are responsible for defining the features for a product."
-knowledge_program_manager = "Features of a product are defined by organizing similar user stories into cohesive groups."
+knowledge_program_manager = (
+    "Features of a product are defined by organizing similar user stories into cohesive groups. "
+    "Base your features only on the product spec and user stories below, do not invent unrelated features.\n"
+    + product_spec
+)
 # Instantiate a program_manager_knowledge_agent using 'persona_program_manager' and 'knowledge_program_manager'
 # (This is a necessary step before TODO 8. Students should add the instantiation code here.)
 program_manager_knowledge_agent = KnowledgeAugmentedPromptAgent(
@@ -108,7 +112,11 @@ program_manager_evaluation_agent = EvaluationAgent(
 
 # Development Engineer - Knowledge Augmented Prompt Agent
 persona_dev_engineer = "You are a Development Engineer, you are responsible for defining the development tasks for a product."
-knowledge_dev_engineer = "Development tasks are defined by identifying what needs to be built to implement each user story."
+knowledge_dev_engineer = (
+    "Development tasks are defined by identifying what needs to be built to implement each user story. "
+    "Base your tasks only on the product spec and user stories/features below, do not invent unrelated tasks.\n"
+    + product_spec
+)
 # Instantiate a development_engineer_knowledge_agent using 'persona_dev_engineer' and 'knowledge_dev_engineer'
 # (This is a necessary step before TODO 9. Students should add the instantiation code here.)
 
@@ -196,6 +204,20 @@ def development_engineer_support_function(query):
     return result["final_response"]
 
 
+def keyword_route(step):
+    """Deterministic routing for unambiguous steps; embedding-based RoutingAgent
+    is used as a fallback for steps that don't match a clear keyword, since
+    similarity scores between roles can be too close to be reliable on their own."""
+    s = step.lower()
+    if "user stor" in s or "persona" in s:
+        return product_manager_support_function
+    if "feature" in s:
+        return program_manager_support_function
+    if "engineering task" in s or "development task" in s:
+        return development_engineer_support_function
+    return None
+
+
 def main():
     print("\n*** Workflow execution started ***\n")
     # Workflow Prompt
@@ -216,17 +238,42 @@ def main():
 
     completed_steps = []
 
-    for step in workflow_steps:
+    for idx, step in enumerate(workflow_steps, start=1):
         print(f"\n>>> Executing step: {step}")
-        result = routing_agent.route(step)
+
+        context_so_far = "\n\n".join(
+            f"{item['step']}\n{item['result']}" for item in completed_steps
+        )
+        query = f"{context_so_far}\n\nNow complete this step: {step}" if context_so_far else step
+
+        handler = keyword_route(step)
+        if handler is not None:
+            # Confidently identified role: pass the context-rich query so
+            # this step's output is grounded in prior steps' real results.
+            result = handler(query)
+        else:
+            # Ambiguous step: fall back to the reusable embedding-based
+            # RoutingAgent, routed on the short step text alone (routing
+            # on a long context-laden query would dilute the similarity
+            # signal RoutingAgent relies on).
+            result = routing_agent.route(step)
+
         completed_steps.append({"step": step, "result": result})
         print(f"Step result:\n{result}")
 
+        with open(f"step_{idx}_output.txt", "w", encoding="utf-8") as f:
+            f.write(f"Step: {step}\n\n")
+            f.write(f"Result:\n{result}\n")
+
     if completed_steps:
         print("\n*** Complete Email Router Project Plan ***")
-        for item in completed_steps:
-            print(f"\n## Step: {item['step']}")
-            print(item["result"])
+        with open("agentic_workflow_output.txt", "w", encoding="utf-8") as f:
+            f.write("*** Complete Email Router Project Plan ***\n")
+            for item in completed_steps:
+                section = f"\n## Step: {item['step']}\n{item['result']}\n"
+                print(f"\n## Step: {item['step']}")
+                print(item["result"])
+                f.write(section)
     else:
         print("No workflow steps were completed.")
 
